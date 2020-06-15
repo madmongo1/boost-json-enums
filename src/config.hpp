@@ -1,11 +1,9 @@
 #pragma once
 
-#include <boost/beast.hpp>
-#include <boost/beast/ssl.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/system/system_error.hpp>
 
-namespace program
-{
-    namespace net = boost::asio;
-    namespace beast = boost::beast;
-    namespace ssl = boost::asio::ssl;
-}
+namespace program {
+using boost::system::error_code;
+using boost::system::system_error;
+} // namespace program

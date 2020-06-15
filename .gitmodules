@@ -1,0 +1,3 @@
+[submodule "subs/json"]
+	path = subs/json
+	url = git@github.com:CPPAlliance/json.git

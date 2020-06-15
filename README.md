@@ -1,10 +1,6 @@
-# beast-softphone-problem
+# check boost.json enum conversions
 
 ## Intention
-
-To recreate the problem reported here:
-
-https://github.com/boostorg/beast/issues/1798
 
 ## Required toolchain
 

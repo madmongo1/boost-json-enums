@@ -1,59 +1,67 @@
-#include <iostream>
-#include "explain.hpp"
 #include "config.hpp"
+#include "explain.hpp"
+#include <boost/json.hpp>
+#include <boost/optional.hpp>
+#include <iostream>
+
+#define ENABLE_ENUM_IO(Enum)                                                   \
+  inline void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,  \
+                         Enum f) {                                             \
+    auto sv = to_string(f);                                                    \
+    jv = boost::json::string(sv.begin(), sv.end());                            \
+  }                                                                            \
+                                                                               \
+  Enum tag_invoke(boost::json::value_to_tag<Enum>,                             \
+                  boost::json::value const &jv) {                              \
+    auto s = jv.as_string();                                                   \
+    auto opt = from_string(s);                                                 \
+    if (!opt)                                                                  \
+      throw std::invalid_argument(s.c_str());                                  \
+    return *opt;                                                               \
+  }
 
 namespace program {
 
-    namespace websocket = beast::websocket;
-    using tcp = net::ip::tcp;
+enum Fruit { Apple, Pear };
 
-    using namespace std::literals;
-
-    int
-    run()
-    {
-        auto host = "cpclientapi.softphone.com"s, endpoint = "/counterpath/socketapi/v1"s, port = "9002"s;
-        net::io_context ioc;
-        ssl::context ctx{ssl::context::tls_client};
-        websocket::stream<ssl::stream<tcp::socket>> m_websocket{ioc, ctx};
-
-        tcp::resolver resolver{ioc};
-
-        const auto resolved = resolver.resolve(host, port);
-
-        boost::asio::connect(m_websocket.next_layer().next_layer(), resolved.begin(), resolved.end());
-
-        m_websocket.next_layer().handshake(ssl::stream_base::client);
-        m_websocket.handshake(host, endpoint);
-
-        std::string request = "GET/bringToFront\n"
-                              "User-Agent: TestApp\n"
-                              "Transaction-ID: AE26f998027\n"
-                              "Content-Type: application/xml\n"
-                              "Content-Length: 0";
-        m_websocket.write(boost::asio::buffer(request));
-
-        beast::flat_buffer m_resBuffer;
-        m_websocket.read(m_resBuffer);
-
-        std::cout << beast::buffers_to_string(m_resBuffer.data()) << std::endl;
-
-        m_websocket.close(websocket::close_code::normal);
-
-        return 0;
-    }
+boost::string_view to_string(Fruit f) {
+  switch (f) {
+  case Apple:
+    return "Apple";
+  case Pear:
+    return "Pear";
+  }
+  return "Unknown";
 }
 
-int
-main()
-{
-    try
-    {
-        return program::run();
-    }
-    catch (...)
-    {
-        std::cerr << program::explain() << std::endl;
-        return 127;
-    }
+boost::optional<Fruit> from_string(boost::string_view sv) {
+  boost::optional<Fruit> result;
+  if (sv == "Apple")
+    result = Apple;
+  else if (sv == "Pear")
+    result = Pear;
+  return result;
+}
+
+ENABLE_ENUM_IO(Fruit)
+
+int run() {
+
+  auto f = Fruit::Apple;
+  auto j = boost::json::value{{"fruit", f}};
+  std::cout << j << std::endl;
+  f = boost::json::value_to<Fruit>(j.as_object().at("fruit"));
+  std::cout << to_string(f) << std::endl;
+
+  return 0;
+}
+} // namespace program
+
+int main() {
+  try {
+    return program::run();
+  } catch (...) {
+    std::cerr << program::explain() << std::endl;
+    return 127;
+  }
 }
